@@ -24,17 +24,25 @@
 
         <service
             android:name=".ipc.LuaRuntimeService"
-            android:exported="true"
+            android:exported="false"
             android:permission="com.bombless.luaandroid.permission.USE_LUA_RUNTIME">
             <intent-filter>
                 <action android:name="com.bombless.luaandroid.action.BIND_RUNTIME" />
             </intent-filter>
         </service>
 
+        <service
+            android:name=".ipc.v2.RuntimeV2Service"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.bombless.luaandroid.action.BIND_RUNTIME_V2" />
+            </intent-filter>
+        </service>
+
         <provider
             android:name=".provider.ResultContentProvider"
             android:authorities="com.bombless.luaandroid.provider.results"
-            android:exported="true"
+            android:exported="false"
             android:grantUriPermissions="true" />
 
     </application>

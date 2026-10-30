@@ -1,0 +1,4 @@
+package com.bombless.luaandroid.ipc.v2
+import android.os.Parcel
+import android.os.Parcelable
+class SessionInfo():Parcelable {var sessionId="";var expiresAtMillis=0L;var grantedScopes= emptyArray<String>();private constructor(p:Parcel):this(){sessionId=p.readString()?:"";expiresAtMillis=p.readLong();grantedScopes=p.createStringArray()?: emptyArray()};override fun writeToParcel(p:Parcel,f:Int){p.writeString(sessionId);p.writeLong(expiresAtMillis);p.writeStringArray(grantedScopes)};override fun describeContents()=0;companion object{@JvmField val CREATOR=object:Parcelable.Creator<SessionInfo>{override fun createFromParcel(p:Parcel)=SessionInfo(p);override fun newArray(n:Int)=arrayOfNulls<SessionInfo>(n)}}}

@@ -1,0 +1,2 @@
+package com.bombless.luaandroid.ipc.v2
+class ProtocolException(val domain:String,val code:String,message:String):SecurityException(message){companion object{const val PROTOCOL_MAJOR_MISMATCH="PROTOCOL_MAJOR_MISMATCH";const val PAIRING_REQUIRED="PAIRING_REQUIRED";const val CALLER_IDENTITY_INVALID="CALLER_IDENTITY_INVALID"}}

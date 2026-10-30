@@ -1,0 +1,4 @@
+package com.bombless.luaandroid.ipc.v2
+import android.os.Parcel
+import android.os.Parcelable
+class CapabilityInfo():Parcelable { var id="";var schemaVersion=1;var limits="{}"; constructor(id:String,version:Int=1,limits:String="{}"):this(){this.id=id;schemaVersion=version;this.limits=limits};private constructor(p:Parcel):this(){id=p.readString()?:"";schemaVersion=p.readInt();limits=p.readString()?:"{}"};override fun writeToParcel(p:Parcel,f:Int){p.writeString(id);p.writeInt(schemaVersion);p.writeString(limits)};override fun describeContents()=0;companion object{@JvmField val CREATOR=object:Parcelable.Creator<CapabilityInfo>{override fun createFromParcel(p:Parcel)=CapabilityInfo(p);override fun newArray(n:Int)=arrayOfNulls<CapabilityInfo>(n)}}}
