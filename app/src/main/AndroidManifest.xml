@@ -3,7 +3,7 @@
 
     <permission
         android:name="com.bombless.luaandroid.permission.USE_LUA_RUNTIME"
-        android:protectionLevel="normal" />
+        android:protectionLevel="signature" />
 
     <application
         android:allowBackup="true"
@@ -33,7 +33,8 @@
 
         <service
             android:name=".ipc.v2.RuntimeV2Service"
-            android:exported="true">
+            android:exported="true"
+            android:permission="com.bombless.luaandroid.permission.USE_LUA_RUNTIME">
             <intent-filter>
                 <action android:name="com.bombless.luaandroid.action.BIND_RUNTIME_V2" />
             </intent-filter>
@@ -43,7 +44,7 @@
             android:name=".provider.ResultContentProvider"
             android:authorities="com.bombless.luaandroid.provider.results"
             android:exported="false"
-            android:grantUriPermissions="true" />
+            android:grantUriPermissions="false" />
 
     </application>
 
