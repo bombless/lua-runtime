@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <permission
+        android:name="com.bombless.luaandroid.permission.USE_LUA_RUNTIME"
+        android:protectionLevel="normal" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@android:drawable/ic_dialog_info"
+        android:label="Lua Android"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.Material.Light">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="Lua Android">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".ipc.LuaRuntimeService"
+            android:exported="true"
+            android:permission="com.bombless.luaandroid.permission.USE_LUA_RUNTIME">
+            <intent-filter>
+                <action android:name="com.bombless.luaandroid.action.BIND_RUNTIME" />
+            </intent-filter>
+        </service>
+
+        <provider
+            android:name=".provider.ResultContentProvider"
+            android:authorities="com.bombless.luaandroid.provider.results"
+            android:exported="true"
+            android:grantUriPermissions="true" />
+
+    </application>
+
+</manifest>
