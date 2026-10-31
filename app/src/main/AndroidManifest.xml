@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <permission
         android:name="com.bombless.luaandroid.permission.USE_LUA_RUNTIME"
         android:protectionLevel="signature" />
@@ -39,6 +41,20 @@
                 <action android:name="com.bombless.luaandroid.action.BIND_RUNTIME_V2" />
             </intent-filter>
         </service>
+
+        <service
+            android:name=".ipc.v2.pairing.RestrictedPairingService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.bombless.luaandroid.action.BIND_PAIRING_V1" />
+            </intent-filter>
+        </service>
+
+        <activity
+            android:name=".ipc.v2.pairing.PairingConsentActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:label="Runtime pairing consent" />
 
         <provider
             android:name=".provider.ResultContentProvider"

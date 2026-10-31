@@ -2,14 +2,21 @@ package com.bombless.luaandroid.ipc.v2
 
 import android.app.Service
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Binder
 import android.os.IBinder
-import android.os.Process
+import android.util.Log
+import com.bombless.luaandroid.ipc.v2.security.AndroidPackageIdentitySource
+import com.bombless.luaandroid.ipc.v2.security.CallerIdentityException
+import com.bombless.luaandroid.ipc.v2.security.CallerIdentityVerifier
+import com.bombless.luaandroid.ipc.v2.security.VerifiedCallerIdentity
 import java.util.UUID
 
 /** Frozen v2 bootstrap. Capabilities remain empty until their implementations ship. */
 class RuntimeV2Service : Service() {
+    private val packageIdentitySource by lazy { AndroidPackageIdentitySource(this) }
+    private val callerIdentityVerifier by lazy { CallerIdentityVerifier(packageIdentitySource) }
+    private val runtimeSignerSha256 by lazy { packageIdentitySource.currentSignerSha256(packageName).sorted() }
+
     private val runtimeId by lazy {
         val prefs = getSharedPreferences("ipc-v2", MODE_PRIVATE)
         prefs.getString("runtime_id", null) ?: UUID.randomUUID().toString().also {
@@ -42,14 +49,7 @@ class RuntimeV2Service : Service() {
             }
 
             val callerUid = Binder.getCallingUid()
-            val callerPackages = trustedPackagesForUid(callerUid)
-            if (callerPackages.isEmpty()) {
-                throw ProtocolException(
-                    "auth",
-                    ProtocolException.CALLER_IDENTITY_INVALID,
-                    "Binder caller identity could not be verified"
-                )
-            }
+            val callerIdentity = verifyTrustedCaller(callerUid)
 
             val sessionId = UUID.randomUUID().toString()
             val sessionExpiresAtMillis = System.currentTimeMillis() + 30 * 60 * 1000L
@@ -61,8 +61,8 @@ class RuntimeV2Service : Service() {
                     if (Binder.getCallingUid() != callerUid) {
                         throw SecurityException("Session caller UID mismatch")
                     }
-                    if (trustedPackagesForUid(callerUid).none { it in callerPackages }) {
-                        throw SecurityException("Session caller package or signing identity is no longer trusted")
+                    if (verifyTrustedCaller(Binder.getCallingUid()) != callerIdentity) {
+                        throw SecurityException("Session caller identity is no longer trusted")
                     }
                 }
 
@@ -82,23 +82,30 @@ class RuntimeV2Service : Service() {
         }
     }
 
-    /** Resolve package ownership from Binder's UID and compare signing identity with this app. */
-    private fun trustedPackagesForUid(uid: Int): Set<String> {
-        val packages = packageManager.getPackagesForUid(uid)?.toSet().orEmpty()
-        if (packages.isEmpty()) return emptySet()
-        if (uid == Process.myUid()) return packages
-
-        val ownPackage = applicationInfo.packageName
-        return packages.filterTo(mutableSetOf()) { packageName ->
-            packageManager.checkSignatures(packageName, ownPackage) == PackageManager.SIGNATURE_MATCH
+    /** The legacy signature-protected path still requires one unambiguous package and exact signer set. */
+    private fun verifyTrustedCaller(uid: Int): VerifiedCallerIdentity {
+        return try {
+            callerIdentityVerifier.verify(uid).also { identity ->
+                if (identity.signerSha256 != runtimeSignerSha256) {
+                    throw CallerIdentityException("Caller signer does not match Runtime signer")
+                }
+            }
+        } catch (_: Exception) {
+            throw ProtocolException(
+                "auth",
+                ProtocolException.CALLER_IDENTITY_INVALID,
+                "Binder caller identity could not be verified"
+            )
         }
     }
+
+    private fun utf8Length(value: String): Int = value.toByteArray(Charsets.UTF_8).size
 
     private fun validateHello(hello: ClientHello?) {
         if (hello == null) {
             throw ProtocolException("protocol", ProtocolException.INVALID_MESSAGE, "ClientHello is required")
         }
-        if (hello.clientVersion.length > 128 || hello.buildId.length > 128 || hello.nonce.length !in 16..128) {
+        if (utf8Length(hello.clientVersion) > 128 || utf8Length(hello.buildId) > 128 || utf8Length(hello.nonce) !in 16..128) {
             throw ProtocolException("protocol", ProtocolException.INVALID_MESSAGE, "ClientHello contains an invalid field length")
         }
         if (hello.minProtocolMajor < 1 || hello.maxProtocolMajor < hello.minProtocolMajor ||
@@ -106,10 +113,13 @@ class RuntimeV2Service : Service() {
             throw ProtocolException("protocol", ProtocolException.INVALID_MESSAGE, "Client protocol range is invalid")
         }
         if (hello.requestedCapabilities.size > 64 ||
-            hello.requestedCapabilities.any { it.isBlank() || it.length > 128 }) {
+            hello.requestedCapabilities.any { it.isBlank() || utf8Length(it) > 128 }) {
             throw ProtocolException("protocol", ProtocolException.INVALID_MESSAGE, "Requested capability list exceeds protocol limits")
         }
     }
 
-    override fun onBind(intent: Intent?): IBinder = binder
+    override fun onBind(intent: Intent?): IBinder {
+        Log.i("RuntimeV2Service", "onBind action=${intent?.action}")
+        return binder
+    }
 }
